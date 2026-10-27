@@ -1,6 +1,7 @@
 # --- Terraform ---
 # .terraform.lock.hcl is intentionally NOT ignored: it pins provider checksums.
 **/.terraform/*
+**/.terragrunt-cache/
 *.tfstate
 *.tfstate.*
 *.tfplan

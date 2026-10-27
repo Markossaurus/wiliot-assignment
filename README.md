@@ -22,7 +22,7 @@ _TBD_
 
 ## Assumptions and shortcuts
 
-_TBD_
+- Terraform state locking uses S3-native lock files (`use_lockfile`) instead of the provided DynamoDB table, because Terraform has deprecated `dynamodb_table`. This requires Terraform >= 1.10.
 
 ## Development
 
