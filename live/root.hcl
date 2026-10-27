@@ -60,7 +60,8 @@ generate "provider" {
 }
 
 inputs = {
-  env                      = local.account.env
-  region                   = local.region_short
-  permissions_boundary_arn = "arn:aws:iam::${local.account.account_id}:policy/CandidateBoundary"
+  env                       = local.account.env
+  region                    = local.region_short
+  name_prefix               = local.name_prefix
+  permissions_boundary_name = "CandidateBoundary"
 }
