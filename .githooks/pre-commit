@@ -12,3 +12,7 @@ gitleaks git --pre-commit --staged --redact --no-banner
 if git diff --cached --name-only --diff-filter=ACM | grep -q '\.tf$'; then
   terraform fmt -check -recursive
 fi
+
+if git diff --cached --name-only --diff-filter=ACM | grep -q '\.hcl$'; then
+  terragrunt hcl fmt --check --working-dir live
+fi
