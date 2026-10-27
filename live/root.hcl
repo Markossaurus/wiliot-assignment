@@ -7,6 +7,9 @@ locals {
 
   # The sandbox only allows IAM roles, policies and S3 buckets named with this prefix.
   name_prefix = "mark-tatarinov"
+
+  region_parts = split("-", local.region.aws_region)
+  region_short = "${local.region_parts[0]}${substr(local.region_parts[1], 0, 1)}${local.region_parts[2]}"
 }
 
 # The assignment requires Terraform; without this Terragrunt prefers OpenTofu when both are installed.
@@ -57,7 +60,7 @@ generate "provider" {
 }
 
 inputs = {
-  name_prefix              = local.name_prefix
-  environment              = local.account.env
+  env                      = local.account.env
+  region                   = local.region_short
   permissions_boundary_arn = "arn:aws:iam::${local.account.account_id}:policy/CandidateBoundary"
 }
