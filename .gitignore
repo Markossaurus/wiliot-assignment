@@ -33,6 +33,12 @@ kubeconfig
 .aws/
 credentials
 
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
 # --- OS / editor ---
 .DS_Store
 Thumbs.db

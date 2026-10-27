@@ -1,0 +1,14 @@
+FROM python:3.13.18-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY consumer.py .
+
+USER 10001
+EXPOSE 8000
+ENTRYPOINT ["python", "consumer.py"]
