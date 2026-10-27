@@ -1,0 +1,43 @@
+# --- Terraform ---
+# .terraform.lock.hcl is intentionally NOT ignored: it pins provider checksums.
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+# tfvars may hold environment-specific or sensitive values; commit only examples.
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# --- Secrets and credentials ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+kubeconfig
+*.kubeconfig
+.kube/
+.aws/
+credentials
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# --- Private working notes (not part of the submission) ---
+DECISIONS.md
