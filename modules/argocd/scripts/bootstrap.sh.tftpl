@@ -1,0 +1,45 @@
+#!/bin/bash
+# Installs Argo CD and the root Application, prints the result to the console, then powers off,
+# which terminates the instance.
+set -euo pipefail
+exec > >(tee -a /dev/console) 2>&1
+trap 'echo "ARGOCD_BOOTSTRAP_RESULT=failure"; sleep 60; poweroff' ERR
+
+export HOME=/root KUBECONFIG=/root/.kube/config
+cd /tmp
+
+curl -fsSLo kubectl "https://dl.k8s.io/release/v${kubectl_version}/bin/linux/amd64/kubectl"
+echo "${kubectl_sha256}  kubectl" | sha256sum -c -
+install -m 0755 kubectl /usr/local/bin/kubectl
+
+curl -fsSLo helm.tar.gz "https://get.helm.sh/helm-v${helm_version}-linux-amd64.tar.gz"
+echo "${helm_sha256}  helm.tar.gz" | sha256sum -c -
+tar -xzf helm.tar.gz linux-amd64/helm
+install -m 0755 linux-amd64/helm /usr/local/bin/helm
+
+mkdir -p /root/.kube
+cat > "$KUBECONFIG" <<'EOF'
+${kubeconfig}
+EOF
+
+cat > argocd-values.yaml <<'EOF'
+${argocd_values}
+EOF
+helm upgrade --install argocd oci://ghcr.io/argoproj/argo-helm/argo-cd \
+  --version "${argocd_chart_version}" \
+  --namespace argocd --create-namespace \
+  --values argocd-values.yaml \
+  --wait --timeout 10m
+
+cat > root-application.yaml <<'EOF'
+${root_application}
+EOF
+kubectl apply -f root-application.yaml
+
+# The console log is the only view into the private cluster, so record what is running.
+kubectl -n argocd get pods,applications
+
+echo "ARGOCD_BOOTSTRAP_RESULT=success"
+# Leaves time for run_bootstrap.sh to read the result while the instance is still running.
+sleep 60
+poweroff

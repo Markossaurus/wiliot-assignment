@@ -12,7 +12,7 @@ module "eks" {
   vpc_id     = var.vpc_id
   subnet_ids = var.subnet_ids
 
-  # API reachable only from inside the VPC (via an SSM tunnel); the repo is public.
+  # API reachable only from inside the VPC: Argo CD pulls deployments from Git, so nothing outside needs it.
   endpoint_private_access = true
   endpoint_public_access  = false
 

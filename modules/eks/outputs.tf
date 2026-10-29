@@ -13,6 +13,11 @@ output "cluster_certificate_authority_data" {
   value       = module.eks.cluster_certificate_authority_data
 }
 
+output "cluster_security_group_id" {
+  description = "Cluster security group, for allowing access to the private API endpoint."
+  value       = module.eks.cluster_security_group_id
+}
+
 output "oidc_provider_arn" {
   description = "IAM OIDC provider ARN, for IRSA role trust policies."
   value       = module.eks.oidc_provider_arn
