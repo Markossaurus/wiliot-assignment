@@ -13,6 +13,11 @@ output "db_name" {
   value       = module.rds.db_instance_name
 }
 
+output "connection_parameter_arns" {
+  description = "SSM parameters holding the connection details, keyed by attribute, for IRSA policies."
+  value       = { for key, parameter in aws_ssm_parameter.connection : key => parameter.arn }
+}
+
 output "resource_id" {
   description = "DB resource ID, used in rds-db:connect ARNs for IAM authentication."
   value       = module.rds.db_instance_resource_id

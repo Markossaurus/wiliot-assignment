@@ -13,6 +13,11 @@ output "bootstrap_brokers_sasl_iam" {
   value       = module.msk.bootstrap_brokers_sasl_iam
 }
 
+output "bootstrap_brokers_parameter_arn" {
+  description = "SSM parameter holding the SASL/IAM bootstrap brokers, for IRSA policies."
+  value       = aws_ssm_parameter.bootstrap_brokers.arn
+}
+
 output "topic_arns" {
   description = "Topic ARNs keyed by topic name, for IRSA policies."
   value       = { for name, topic in module.msk.topics : name => topic.arn }
