@@ -56,8 +56,20 @@ def beat() -> None:
     heartbeat = time.monotonic()
 
 
+def setting(name: str, default: str | None = None) -> str:
+    """Reads NAME from the file that NAME_FILE points to (a Secrets Store CSI mount), else from NAME."""
+    path = os.environ.get(f"{name}_FILE")
+    if path:
+        with open(path) as f:
+            return f.read().strip()
+    value = os.environ.get(name, default)
+    if value is None:
+        raise KeyError(name)
+    return value
+
+
 def kafka_config() -> dict:
-    conf = {"bootstrap.servers": os.environ["KAFKA_BOOTSTRAP_SERVERS"]}
+    conf = {"bootstrap.servers": setting("KAFKA_BOOTSTRAP_SERVERS")}
     if os.environ.get("KAFKA_AUTH", "none") == "iam":
         from aws_msk_iam_sasl_signer import MSKAuthTokenProvider
 
@@ -90,17 +102,18 @@ class Database:
         self._conn: psycopg.Connection | None = None
 
     def _connect(self) -> psycopg.Connection:
-        kwargs = {}
+        # Read on every connect, so a reconnect picks up a rotated endpoint file.
+        kwargs = {"host": setting("PGHOST"), "port": int(setting("PGPORT", "5432")), "dbname": setting("PGDATABASE")}
         if os.environ.get("DB_AUTH", "password") == "iam":
             import boto3
 
             # Short-lived token used as the password; only needed when a connection is opened.
             kwargs["password"] = boto3.client("rds", region_name=os.environ["AWS_REGION"]).generate_db_auth_token(
-                DBHostname=os.environ["PGHOST"],
-                Port=int(os.environ.get("PGPORT", "5432")),
+                DBHostname=kwargs["host"],
+                Port=kwargs["port"],
                 DBUsername=os.environ["PGUSER"],
             )
-        # Host, port, database, user and TLS settings come from the standard PG* environment variables.
+        # User and TLS settings come from the standard PG* environment variables.
         return psycopg.connect(autocommit=True, **kwargs)
 
     def insert(self, rows: list[tuple]) -> list[tuple[str, datetime]]:

@@ -21,9 +21,11 @@ log = logging.getLogger("producer")
 BINANCE_WS_URL = os.environ.get("BINANCE_WS_URL", "wss://stream.binance.com:9443/stream")
 SYMBOLS = os.environ.get(
     "SYMBOLS",
-    "btcusdt,ethusdt,solusdt,bnbusdt,xrpusdt,adausdt,dogeusdt,avaxusdt,linkusdt,maticusdt",
+    "btcusdt,ethusdt,solusdt,bnbusdt,xrpusdt,adausdt,dogeusdt,avaxusdt,linkusdt",
 ).split(",")
 KAFKA_TOPIC = os.environ.get("KAFKA_TOPIC", "binance.trades")
+# Off on MSK, where Terraform owns the topic and the producer isn't allowed to create topics.
+CREATE_TOPIC = os.environ.get("KAFKA_CREATE_TOPIC", "true") == "true"
 TOPIC_PARTITIONS = int(os.environ.get("KAFKA_TOPIC_PARTITIONS", "6"))
 TOPIC_REPLICATION = int(os.environ.get("KAFKA_TOPIC_REPLICATION", "3"))
 TOPIC_RETENTION_MS = int(os.environ.get("KAFKA_TOPIC_RETENTION_MS", str(7 * 24 * 3600 * 1000)))
@@ -46,8 +48,20 @@ BINANCE_LATENCY = Histogram(
 heartbeat = time.monotonic()
 
 
+def setting(name: str, default: str | None = None) -> str:
+    """Reads NAME from the file that NAME_FILE points to (a Secrets Store CSI mount), else from NAME."""
+    path = os.environ.get(f"{name}_FILE")
+    if path:
+        with open(path) as f:
+            return f.read().strip()
+    value = os.environ.get(name, default)
+    if value is None:
+        raise KeyError(name)
+    return value
+
+
 def kafka_config() -> dict:
-    conf = {"bootstrap.servers": os.environ["KAFKA_BOOTSTRAP_SERVERS"]}
+    conf = {"bootstrap.servers": setting("KAFKA_BOOTSTRAP_SERVERS")}
     if os.environ.get("KAFKA_AUTH", "none") == "iam":
         from aws_msk_iam_sasl_signer import MSKAuthTokenProvider
 
@@ -182,7 +196,8 @@ def main() -> None:
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
     conf = kafka_config()
-    ensure_topic(conf)
+    if CREATE_TOPIC:
+        ensure_topic(conf)
     producer = Producer(
         {
             **conf,

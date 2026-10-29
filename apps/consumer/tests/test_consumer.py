@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pytest
 
-from consumer import to_row
+from consumer import setting, to_row
 
 TRADE = {
     "e": "trade",
@@ -53,3 +53,19 @@ def test_missing_field_is_rejected():
 
     with pytest.raises(KeyError):
         to_row(json.dumps(trade).encode())
+
+
+def test_setting_prefers_the_mounted_file(tmp_path, monkeypatch):
+    path = tmp_path / "address"
+    path.write_text("rds-trades.example.internal\n")
+    monkeypatch.setenv("PGHOST_FILE", str(path))
+    monkeypatch.setenv("PGHOST", "ignored")
+
+    assert setting("PGHOST") == "rds-trades.example.internal"
+
+
+def test_setting_uses_the_default_when_unset(monkeypatch):
+    monkeypatch.delenv("PGPORT_FILE", raising=False)
+    monkeypatch.delenv("PGPORT", raising=False)
+
+    assert setting("PGPORT", "5432") == "5432"
