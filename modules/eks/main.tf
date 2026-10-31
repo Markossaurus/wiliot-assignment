@@ -67,9 +67,12 @@ module "eks" {
       # aws-node gets these permissions from its own IRSA role instead.
       iam_role_attach_cni_policy = false
 
-      ami_type       = "AL2023_x86_64_STANDARD"
-      instance_types = var.node_instance_types
-      capacity_type  = "ON_DEMAND"
+      ami_type = "AL2023_x86_64_STANDARD"
+      # Nodes change only when this pin does, not whenever AWS publishes an AMI and someone applies.
+      use_latest_ami_release_version = false
+      ami_release_version            = var.node_ami_release_version
+      instance_types                 = var.node_instance_types
+      capacity_type                  = "ON_DEMAND"
 
       min_size     = var.node_min_size
       max_size     = var.node_max_size

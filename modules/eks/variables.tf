@@ -38,6 +38,11 @@ variable "addon_versions" {
   type        = map(string)
 }
 
+variable "node_ami_release_version" {
+  description = "EKS-optimized AMI release for the nodes (e.g. 1.37.1-20261026); changing it rolls the nodes."
+  type        = string
+}
+
 variable "node_instance_types" {
   description = "Instance types for the managed node group."
   type        = list(string)

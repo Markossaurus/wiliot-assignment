@@ -31,7 +31,8 @@ inputs = {
   vpc_id     = dependency.vpc.outputs.vpc_id
   subnet_ids = dependency.vpc.outputs.private_subnet_ids
 
-  node_instance_types = ["t3.large"]
+  node_ami_release_version = "1.37.1-20261026"
+  node_instance_types      = ["t3.large"]
   # One node per AZ, so each producer and consumer replica can run in its own zone.
   node_min_size     = 3
   node_max_size     = 4
