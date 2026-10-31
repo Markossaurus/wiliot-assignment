@@ -4,8 +4,6 @@ image:
   # The git tree hash of apps/consumer; CI updates it after pushing the image.
   tag: 729e83ebb7508d6265fe7eb9f75e401783f275cb
 roleArn: arn:aws:iam::092988563851:role/mark-tatarinov-role-irsa-consumer-euc1-prod
-autoscaling:
-  minReplicas: 6
 parameters:
   kafkaBootstrapServers: /msk-trades-euc1-prod/bootstrap-brokers-sasl-iam
   dbAddress: /rds-trades-euc1-prod/address
