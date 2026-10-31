@@ -23,35 +23,10 @@ locals {
     contexts        = [{ name = "bootstrap", context = { cluster = var.cluster_name, user = "bootstrap" } }]
     current-context = "bootstrap"
   })
-
-  argocd_values = yamlencode({
-    # No SSO: the UI is never exposed outside the cluster.
-    dex = { enabled = false }
-  })
-
-  root_application = yamlencode({
-    apiVersion = "argoproj.io/v1alpha1"
-    kind       = "Application"
-    metadata   = { name = var.app_name, namespace = "argocd" }
-    spec = {
-      project = "default"
-      source = {
-        repoURL        = var.repo_url
-        targetRevision = var.repo_revision
-        path           = var.repo_path
-        helm           = { valueFiles = var.value_files }
-      }
-      destination = { server = "https://kubernetes.default.svc", namespace = var.app_namespace }
-      syncPolicy = {
-        automated   = { prune = true, selfHeal = true }
-        syncOptions = ["CreateNamespace=true"]
-      }
-    }
-  })
 }
 
-# Launched once per template version by terraform_data.bootstrap; the instance terminates
-# itself when the script finishes, so nothing is left running or billed.
+# Launched once per cluster by terraform_data.bootstrap; the instance terminates itself when the
+# script finishes, so nothing is left running or billed.
 resource "aws_launch_template" "bootstrap" {
   name                                 = "lt-${local.name}"
   image_id                             = data.aws_ssm_parameter.al2023_ami.insecure_value
@@ -59,14 +34,15 @@ resource "aws_launch_template" "bootstrap" {
   instance_initiated_shutdown_behavior = "terminate"
 
   user_data = base64encode(templatefile("${path.module}/scripts/bootstrap.sh.tftpl", {
-    kubectl_version      = var.kubectl.version
-    kubectl_sha256       = var.kubectl.sha256
-    helm_version         = var.helm.version
-    helm_sha256          = var.helm.sha256
-    argocd_chart_version = var.argocd_chart_version
-    kubeconfig           = local.kubeconfig
-    argocd_values        = local.argocd_values
-    root_application     = local.root_application
+    kubectl_version         = var.kubectl.version
+    kubectl_sha256          = var.kubectl.sha256
+    helm_version            = var.helm.version
+    helm_sha256             = var.helm.sha256
+    argocd_chart_repository = var.argocd_chart_repository
+    argocd_chart_version    = var.argocd_chart_version
+    kubeconfig              = local.kubeconfig
+    argocd_values           = var.argocd_values
+    root_application        = var.root_application
   }))
 
   iam_instance_profile {
@@ -107,7 +83,7 @@ resource "aws_launch_template" "bootstrap" {
   }
 
   lifecycle {
-    # A newer AL2023 AMI would otherwise create a new version and re-run the bootstrap.
+    # A newer AL2023 AMI would otherwise create a template version on every apply.
     ignore_changes = [image_id]
   }
 }

@@ -6,6 +6,11 @@ terraform {
   source = "${get_repo_root()}/modules//argocd"
 }
 
+locals {
+  env                = read_terragrunt_config(find_in_parent_folders("account.hcl")).locals.env
+  argocd_application = yamldecode(file("${get_repo_root()}/argocd/${local.env}/apps/argocd.yaml"))
+}
+
 dependency "vpc" {
   config_path = "../vpc"
 
@@ -46,12 +51,10 @@ inputs = {
     version = "4.3.1"
     sha256  = "0403a88ae20913d11b10a2467b50087721fea7581736da6b9d3992f5357fe54b"
   }
-  argocd_chart_version = "10.11.6"
-
-  repo_url      = "https://github.com/Markossaurus/wiliot-assignment.git"
-  repo_revision = "main"
-  repo_path     = "deploy/trades"
-  app_name      = "trades"
-  app_namespace = "trades"
-  value_files   = ["values-prod.yaml"]
+  # Argo CD manages itself from these files once bootstrapped; installing the same chart version
+  # and values makes the hand-over a no-op.
+  argocd_chart_repository = local.argocd_application.spec.sources[0].repoURL
+  argocd_chart_version    = local.argocd_application.spec.sources[0].targetRevision
+  argocd_values           = file("${get_repo_root()}/argocd/${local.env}/values/argocd.yaml")
+  root_application        = file("${get_repo_root()}/argocd/roots/${local.env}.yaml")
 }

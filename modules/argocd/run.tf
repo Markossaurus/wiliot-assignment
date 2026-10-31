@@ -1,7 +1,9 @@
-# Runs the bootstrap once per launch template version and fails the apply, with the
-# instance's console log, if the bootstrap script fails.
+# Runs the bootstrap once per cluster and fails the apply, with the instance's console log, if the
+# bootstrap script fails. Afterwards Argo CD manages itself from Git, so a normal apply never
+# re-runs it; `terragrunt apply -replace=terraform_data.bootstrap` does, as a break-glass.
 resource "terraform_data" "bootstrap" {
-  triggers_replace = [aws_launch_template.bootstrap.id, aws_launch_template.bootstrap.latest_version]
+  # The endpoint is unique to each cluster, unlike its name or ARN.
+  triggers_replace = [var.cluster_endpoint]
 
   provisioner "local-exec" {
     command = join(" ", [

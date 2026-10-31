@@ -69,37 +69,22 @@ variable "helm" {
   })
 }
 
+variable "argocd_chart_repository" {
+  description = "Helm repository of the argo-cd chart."
+  type        = string
+}
+
 variable "argocd_chart_version" {
   description = "Version of the argo-cd Helm chart."
   type        = string
 }
 
-variable "repo_url" {
-  description = "Git repository the root Application deploys from."
+variable "argocd_values" {
+  description = "Helm values (YAML) Argo CD is installed with; the same file Argo CD later manages itself with."
   type        = string
 }
 
-variable "repo_revision" {
-  description = "Branch, tag or commit the root Application tracks."
+variable "root_application" {
+  description = "Root Application manifest (YAML) applied after the install; it then manages itself from Git."
   type        = string
-}
-
-variable "repo_path" {
-  description = "Path of the Helm chart inside the repository."
-  type        = string
-}
-
-variable "app_name" {
-  description = "Name of the root Argo CD Application."
-  type        = string
-}
-
-variable "app_namespace" {
-  description = "Namespace the root Application deploys into."
-  type        = string
-}
-
-variable "value_files" {
-  description = "Helm values files, relative to the chart path, that the root Application renders with."
-  type        = list(string)
 }
