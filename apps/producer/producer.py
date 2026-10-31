@@ -136,6 +136,20 @@ def publish(producer: Producer, raw: str) -> None:
     producer.poll(0)
 
 
+def new_producer(conf: dict, client_id: str) -> Producer:
+    """An idempotent producer that waits for all in-sync replicas; shared with the backfill."""
+    return Producer(
+        {
+            **conf,
+            "client.id": client_id,
+            "enable.idempotence": True,
+            "acks": "all",
+            "linger.ms": 5,
+            "compression.type": "lz4",
+        }
+    )
+
+
 async def stream(producer: Producer) -> None:
     global heartbeat
     url = f"{BINANCE_WS_URL}?streams=" + "/".join(f"{s}@trade" for s in SYMBOLS)
@@ -198,16 +212,7 @@ def main() -> None:
     conf = kafka_config()
     if CREATE_TOPIC:
         ensure_topic(conf)
-    producer = Producer(
-        {
-            **conf,
-            "client.id": "binance-producer",
-            "enable.idempotence": True,
-            "acks": "all",
-            "linger.ms": 5,
-            "compression.type": "lz4",
-        }
-    )
+    producer = new_producer(conf, "binance-producer")
     server = ThreadingHTTPServer(("", HTTP_PORT), HealthHandler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     asyncio.run(run(producer))

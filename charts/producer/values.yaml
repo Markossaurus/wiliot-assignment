@@ -25,3 +25,22 @@ resources:
     memory: 128Mi
   limits:
     memory: 256Mi
+
+# Fills gaps in the trades table from Binance's REST API, through the producer's Kafka code. Runs
+# with its own identity: the live producer has no access to the database.
+backfill:
+  enabled: true
+  schedule: "*/5 * * * *"
+  roleArn: ""
+  # Read-only user the database chart creates; logs in with IAM.
+  databaseUser: trades_reader
+  parameters:
+    dbAddress: ""
+    dbPort: ""
+    dbName: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi

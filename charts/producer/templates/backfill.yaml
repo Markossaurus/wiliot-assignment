@@ -1,0 +1,126 @@
+{{- if .Values.backfill.enabled }}
+{{- $ctx := dict "name" "producer-backfill" "root" . }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: producer-backfill
+  labels:
+    {{- include "producer.labels" $ctx | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+    eks.amazonaws.com/role-arn: {{ required "backfill.roleArn is required" .Values.backfill.roleArn }}
+---
+# Its own store, so the live producer's role never needs the database parameters.
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: producer-backfill
+  labels:
+    {{- include "producer.labels" $ctx | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  provider:
+    aws:
+      service: ParameterStore
+      region: {{ required "awsRegion is required" .Values.awsRegion }}
+      auth:
+        jwt:
+          serviceAccountRef:
+            name: producer-backfill
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: producer-backfill
+  labels:
+    {{- include "producer.labels" $ctx | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: producer-backfill
+  target:
+    name: producer-backfill-config
+  data:
+    {{- range $key, $parameter := dict
+      "kafka-bootstrap-servers" .Values.parameters.kafkaBootstrapServers
+      "db-host" .Values.backfill.parameters.dbAddress
+      "db-port" .Values.backfill.parameters.dbPort
+      "db-name" .Values.backfill.parameters.dbName }}
+    - secretKey: {{ $key }}
+      remoteRef:
+        key: {{ required (printf "the SSM parameter for %s is required" $key) $parameter }}
+    {{- end }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: producer-backfill
+  labels:
+    {{- include "producer.labels" $ctx | nindent 4 }}
+spec:
+  schedule: {{ .Values.backfill.schedule | quote }}
+  # A slow run must never overlap the next one, or both would fetch and publish the same gaps.
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      # Each run starts from what is still missing, so a failed run is simply retried by the next.
+      backoffLimit: 0
+      activeDeadlineSeconds: 240
+      template:
+        metadata:
+          labels:
+            {{- include "producer.labels" $ctx | nindent 12 }}
+        spec:
+          serviceAccountName: producer-backfill
+          restartPolicy: Never
+          securityContext:
+            {{- include "producer.podSecurityContext" . | nindent 12 }}
+          containers:
+            - name: backfill
+              image: {{ include "producer.image" . }}
+              command: ["python", "backfill.py"]
+              env:
+                - name: AWS_REGION
+                  value: {{ .Values.awsRegion }}
+                - name: KAFKA_AUTH
+                  value: iam
+                - name: KAFKA_BOOTSTRAP_SERVERS_FILE
+                  value: /etc/producer-backfill/kafka-bootstrap-servers
+                - name: KAFKA_TOPIC
+                  value: {{ .Values.kafka.topic }}
+                - name: PGHOST_FILE
+                  value: /etc/producer-backfill/db-host
+                - name: PGPORT_FILE
+                  value: /etc/producer-backfill/db-port
+                - name: PGDATABASE_FILE
+                  value: /etc/producer-backfill/db-name
+                - name: PGUSER
+                  value: {{ .Values.backfill.databaseUser }}
+                - name: PGSSLMODE
+                  value: verify-full
+                # Baked into the image.
+                - name: PGSSLROOTCERT
+                  value: /etc/ssl/certs/rds-global-bundle.pem
+              resources:
+                {{- toYaml .Values.backfill.resources | nindent 16 }}
+              securityContext:
+                {{- include "producer.containerSecurityContext" . | nindent 16 }}
+              volumeMounts:
+                - name: config
+                  mountPath: /etc/producer-backfill
+                  readOnly: true
+                - name: tmp
+                  mountPath: /tmp
+          volumes:
+            - name: config
+              secret:
+                secretName: producer-backfill-config
+            - name: tmp
+              emptyDir: {}
+{{- end }}

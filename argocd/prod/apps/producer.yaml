@@ -11,7 +11,7 @@ spec:
   sources:
     - repoURL: 092988563851.dkr.ecr.eu-central-1.amazonaws.com/charts
       chart: producer
-      targetRevision: 0.1.0
+      targetRevision: 0.2.0
       helm:
         valueFiles:
           - $values/argocd/prod/values/producer.yaml

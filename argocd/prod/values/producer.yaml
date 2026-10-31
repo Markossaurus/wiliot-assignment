@@ -2,7 +2,13 @@ awsRegion: eu-central-1
 image:
   repository: 092988563851.dkr.ecr.eu-central-1.amazonaws.com/producer
   # The git tree hash of apps/producer; CI updates it after pushing the image.
-  tag: 2a24f7685f746a881e855427c0dd1197bca0ad84
+  tag: 561a1e65befc8a428bf8de3f5b66adf518427d4c
 roleArn: arn:aws:iam::092988563851:role/mark-tatarinov-role-irsa-producer-euc1-prod
 parameters:
   kafkaBootstrapServers: /msk-trades-euc1-prod/bootstrap-brokers-sasl-iam
+backfill:
+  roleArn: arn:aws:iam::092988563851:role/mark-tatarinov-role-irsa-producer-backfill-euc1-prod
+  parameters:
+    dbAddress: /rds-trades-euc1-prod/address
+    dbPort: /rds-trades-euc1-prod/port
+    dbName: /rds-trades-euc1-prod/db-name
