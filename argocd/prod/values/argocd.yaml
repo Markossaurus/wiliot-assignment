@@ -4,6 +4,10 @@ dex:
 
 configs:
   cm:
+    # How often Argo CD checks Git for changes. Without inbound access there is no webhook, so a
+    # shorter interval is what keeps a push from waiting minutes to deploy.
+    timeout.reconciliation: 60s
+    timeout.reconciliation.jitter: 10s
     # Restores health assessment of Application resources, so sync waves in the root
     # Application wait for each child Application to become healthy. Health only: root is one of
     # its own resources, so a check on the sync phase would make root wait for its own sync.
