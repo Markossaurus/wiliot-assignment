@@ -19,6 +19,10 @@ spec:
       namespace: external-secrets
     - server: https://kubernetes.default.svc
       namespace: keda
+    # KEDA's metrics server, like any extension API server, needs a RoleBinding here to read the
+    # API server's client CA settings.
+    - server: https://kubernetes.default.svc
+      namespace: kube-system
   # Add-ons install CRDs, cluster roles and admission webhooks.
   clusterResourceWhitelist:
     - group: "*"
