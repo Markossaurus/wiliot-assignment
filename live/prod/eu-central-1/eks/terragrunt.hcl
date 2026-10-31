@@ -24,6 +24,8 @@ inputs = {
     coredns        = "v1.14.7-eksbuild.22"
     kube-proxy     = "v1.37.0-eksbuild.32"
     metrics-server = "v0.9.0-eksbuild.14"
+
+    amazon-cloudwatch-observability = "v7.0.0-eksbuild.1"
   }
 
   vpc_id     = dependency.vpc.outputs.vpc_id

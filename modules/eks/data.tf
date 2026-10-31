@@ -5,3 +5,7 @@ data "aws_iam_policy" "permissions_boundary" {
 data "aws_iam_policy" "eks_cni" {
   name = "AmazonEKS_CNI_Policy"
 }
+
+data "aws_iam_policy" "cloudwatch_agent_server" {
+  name = "CloudWatchAgentServerPolicy"
+}
