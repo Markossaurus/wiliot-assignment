@@ -1,10 +1,7 @@
 awsRegion: eu-central-1
-
 roleArn: arn:aws:iam::092988563851:role/mark-tatarinov-role-irsa-db-bootstrap-euc1-prod
-
 database:
   instanceIdentifier: rds-trades-euc1-prod
-
 image:
   repository: 092988563851.dkr.ecr.eu-central-1.amazonaws.com/db-bootstrap
   # The git tree hash of apps/db-bootstrap; CI updates it after pushing the image.
