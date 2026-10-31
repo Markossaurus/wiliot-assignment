@@ -71,7 +71,9 @@ spec:
     spec:
       # Each run starts from what is still missing, so a failed run is simply retried by the next.
       backoffLimit: 0
-      activeDeadlineSeconds: 240
+      # Ends a stuck run before the next one is due: the 5-minute schedule minus the pod's 30 s
+      # termination grace period. A longer repair continues in the next run, from the watermarks.
+      activeDeadlineSeconds: 270
       template:
         metadata:
           labels:

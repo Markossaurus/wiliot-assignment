@@ -32,8 +32,8 @@ backfill:
   enabled: true
   schedule: "*/5 * * * *"
   roleArn: ""
-  # Read-only user the database chart creates; logs in with IAM.
-  databaseUser: trades_reader
+  # User the database chart creates for it: reads trades, keeps the watermarks; logs in with IAM.
+  databaseUser: trades_backfill
   parameters:
     dbAddress: ""
     dbPort: ""

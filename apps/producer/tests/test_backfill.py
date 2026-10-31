@@ -1,6 +1,9 @@
+import io
 import json
+import urllib.error
 
-from backfill import backfill, to_stream_message
+import backfill as b
+from backfill import Exchange, backfill, new_watermarks, to_stream_message
 from producer import to_kafka_record
 
 REST_TRADE = {
@@ -51,8 +54,38 @@ def test_each_missing_id_is_sent_once_across_pages():
     assert calls == [("BTCUSDT", 100, 1000), ("BTCUSDT", 1100, 1000), ("BTCUSDT", 2100, 500)]
 
 
-def test_stops_at_the_call_budget_and_leaves_the_rest_for_the_next_run():
-    fetch, calls = fake_exchange(first_id=1, count=10_000)
-    sent = []
-    assert backfill([("BTCUSDT", 1, 5000), ("ETHUSDT", 1, 10)], fetch, sent.append, max_calls=2) == 2000
-    assert len(calls) == 2
+def test_stops_when_binance_rate_limits_and_keeps_what_it_sent():
+    fetch, _ = fake_exchange(first_id=1, count=10_000)
+
+    def limited(symbol, from_id, limit):
+        if from_id > 1000:
+            raise urllib.error.HTTPError("url", 429, "Too Many Requests", {}, None)
+        return fetch(symbol, from_id, limit)
+
+    assert backfill([("BTCUSDT", 1, 5000)], limited, lambda _: None) == 1000
+
+
+def test_watermark_stops_before_the_first_gap_even_an_unsettled_one():
+    gaps = [("BTCUSDT", 1501, 1799, True), ("BTCUSDT", 2001, 2001, True), ("ETHUSDT", 90, 90, False)]
+    latest = {"BTCUSDT": 2100, "ETHUSDT": 95, "SOLUSDT": 7000}
+    assert new_watermarks(latest, gaps) == {"BTCUSDT": 1500, "ETHUSDT": 89, "SOLUSDT": 7000}
+
+
+class FakeResponse(io.BytesIO):
+    def __init__(self, body, used_weight):
+        super().__init__(json.dumps(body).encode())
+        self.headers = {"x-mbx-used-weight-1m": str(used_weight)}
+
+
+def test_waits_for_the_next_minute_before_going_over_the_weight_budget():
+    weights = iter([b.WEIGHT_BUDGET - 2 * b.CALL_WEIGHT, b.WEIGHT_BUDGET - 10, b.CALL_WEIGHT])
+    slept = []
+    exchange = Exchange(
+        urlopen=lambda url, timeout: FakeResponse([REST_TRADE], next(weights)),
+        sleep=slept.append,
+        now=lambda: 1_800_000_020.5,
+    )
+    for _ in range(3):
+        exchange.fetch("BTCUSDT", 1, 1)
+    # Only the third call would go over: it waits out the 39.5 s left in the minute, plus a second.
+    assert slept == [40.5]

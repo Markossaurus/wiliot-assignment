@@ -3,4 +3,4 @@ name: producer
 description: Streams Binance trades into Kafka.
 type: application
 # Bump on every chart change; CI refuses to publish changed content under an existing version.
-version: 0.2.0
+version: 0.3.0
