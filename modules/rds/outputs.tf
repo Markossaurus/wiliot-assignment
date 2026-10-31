@@ -32,3 +32,8 @@ output "instance_arn" {
   description = "DB instance ARN, for rds:DescribeDBInstances in IRSA policies."
   value       = module.rds.db_instance_arn
 }
+
+output "identifier" {
+  description = "DB instance identifier, the dimension of its CloudWatch metrics."
+  value       = module.rds.db_instance_identifier
+}
