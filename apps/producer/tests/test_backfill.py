@@ -1,5 +1,6 @@
 import io
 import json
+import threading
 import urllib.error
 
 import backfill as b
@@ -48,7 +49,7 @@ def fake_exchange(first_id, count):
 def test_each_missing_id_is_sent_once_across_pages():
     fetch, calls = fake_exchange(first_id=1, count=10_000)
     sent = []
-    total = backfill([("BTCUSDT", 100, 2599)], fetch, sent.append)
+    total = backfill([("BTCUSDT", 100, 2599)], fetch, sent.append, threading.Event())
     ids = [json.loads(m)["t"] for m in sent]
     assert total == 2500 and ids == list(range(100, 2600))
     assert calls == [("BTCUSDT", 100, 1000), ("BTCUSDT", 1100, 1000), ("BTCUSDT", 2100, 500)]
@@ -62,7 +63,20 @@ def test_stops_when_binance_rate_limits_and_keeps_what_it_sent():
             raise urllib.error.HTTPError("url", 429, "Too Many Requests", {}, None)
         return fetch(symbol, from_id, limit)
 
-    assert backfill([("BTCUSDT", 1, 5000)], limited, lambda _: None) == 1000
+    assert backfill([("BTCUSDT", 1, 5000)], limited, lambda _: None, threading.Event()) == 1000
+
+
+def test_stops_after_the_current_page_on_sigterm():
+    fetch, calls = fake_exchange(first_id=1, count=10_000)
+    stopping = threading.Event()
+
+    def fetch_then_sigterm(symbol, from_id, limit):
+        stopping.set()
+        return fetch(symbol, from_id, limit)
+
+    sent = []
+    assert backfill([("BTCUSDT", 1, 5000), ("ETHUSDT", 1, 10)], fetch_then_sigterm, sent.append, stopping) == 1000
+    assert len(calls) == 1 and len(sent) == 1000
 
 
 def test_watermark_stops_before_the_first_gap_even_an_unsettled_one():

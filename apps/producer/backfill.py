@@ -10,7 +10,9 @@ The consumer inserts them like any other trade, and its primary key absorbs any 
 import json
 import logging
 import os
+import signal
 import sys
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -123,12 +125,15 @@ def to_stream_message(symbol: str, trade: dict) -> str:
     )
 
 
-def backfill(gaps, fetch, send) -> int:
+def backfill(gaps, fetch, send, stopping: threading.Event) -> int:
     """Fetches each missing range page by page and sends every trade in it; returns how many."""
     sent = 0
     for symbol, first, last in gaps:
         from_id = first
         while from_id <= last:
+            if stopping.is_set():
+                log.warning("stopping on SIGTERM; the rest waits for the next run")
+                return sent
             try:
                 page = fetch(symbol, from_id, min(PAGE_SIZE, last - from_id + 1))
             except urllib.error.HTTPError as exc:
@@ -163,6 +168,10 @@ def connect() -> psycopg.Connection:
 
 
 def main() -> None:
+    # Python runs as PID 1, which ignores SIGTERM unless it has a handler, so the Job's deadline
+    # would otherwise kill the run without flushing what it fetched.
+    stopping = threading.Event()
+    signal.signal(signal.SIGTERM, lambda *_: stopping.set())
     logging.basicConfig(
         level=os.environ.get("LOG_LEVEL", "INFO"),
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
@@ -177,7 +186,9 @@ def main() -> None:
     log.info("found %d missing trades in %d ranges: %s", missing, len(settled), settled[:20])
     producer = new_producer(kafka_config(), "binance-backfill")
     try:
-        sent = backfill(settled, Exchange().fetch, lambda raw: publish(producer, raw))
+        # Waiting out Binance's rate-limit minute ends on SIGTERM too, unlike time.sleep.
+        exchange = Exchange(sleep=stopping.wait)
+        sent = backfill(settled, exchange.fetch, lambda raw: publish(producer, raw), stopping)
     finally:
         unflushed = producer.flush(30)
     log.info("published %d trades, %d not acknowledged", sent, unflushed)
