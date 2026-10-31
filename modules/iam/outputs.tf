@@ -27,3 +27,8 @@ output "data_probe_role_arn" {
   description = "IRSA role of the data probe's service account."
   value       = module.data_probe_role.arn
 }
+
+output "keda_role_arn" {
+  description = "IRSA role of KEDA's operator, which reads consumer lag."
+  value       = module.keda_role.arn
+}

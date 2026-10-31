@@ -1,12 +1,13 @@
 locals {
   suffix = "${var.region}-${var.env}"
 
-  # namespace:name of each IRSA service account; must match charts/ and argocd/kustomizations.
+  # namespace:name of each IRSA service account; must match charts/, argocd/kustomizations and the KEDA chart.
   service_accounts = {
     producer     = "trades:producer"
     consumer     = "trades:consumer"
     db_bootstrap = "trades:db-bootstrap"
     data_probe   = "trades:data-probe"
+    keda         = "keda:keda-operator"
     argocd       = "argocd:ecr-credentials"
   }
 
