@@ -136,8 +136,12 @@ jobs:
         run: |
           # app:values file; the database chart runs the db-bootstrap image.
           for pair in producer:producer consumer:consumer db-bootstrap:database; do
-            app=${pair%%:*} values=${pair#*:}
-            tag=$(git rev-parse "HEAD:apps/$app") yq -i '.image.tag = strenv(tag)' "argocd/prod/values/$values.yaml"
+            app=${pair%%:*} values="argocd/prod/values/${pair#*:}.yaml"
+            tag=$(git rev-parse "HEAD:apps/$app")
+            # yq also reformats the file it writes, so it only touches files whose tag changed.
+            if [ "$(yq '.image.tag' "$values")" != "$tag" ]; then
+              tag="$tag" yq -i '.image.tag = strenv(tag)' "$values"
+            fi
           done
           if git diff --quiet; then
             echo "image tags are already current"
