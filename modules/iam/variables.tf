@@ -83,6 +83,11 @@ variable "db_reader_user" {
   type        = string
 }
 
+variable "db_backfill_user" {
+  description = "Database user the backfill connects as with IAM authentication."
+  type        = string
+}
+
 variable "metrics_namespace" {
   description = "CloudWatch namespace the data probe publishes its metrics to."
   type        = string

@@ -1,5 +1,9 @@
-# The producer's backfill CronJob: writes to the topic like the producer, and reads the trades table
-# to find the gaps. The live producer itself gets no database access.
+locals {
+  db_backfill_user_arn = "arn:aws:rds-db:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:dbuser:${var.rds_resource_id}/${var.db_backfill_user}"
+}
+
+# The producer's backfill CronJob: writes to the topic like the producer, and connects to the
+# database to find the gaps and keep the watermarks. The live producer itself gets no database access.
 module "producer_backfill_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role"
   version = "6.8.2"
@@ -26,7 +30,7 @@ module "producer_backfill_role" {
     }
     Database = {
       actions   = ["rds-db:connect"]
-      resources = [local.db_reader_user_arn]
+      resources = [local.db_backfill_user_arn]
     }
     # Read by External Secrets, which authenticates as this service account.
     Parameters = {
