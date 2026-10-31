@@ -27,3 +27,53 @@ variable "ecr_repository_arns" {
   description = "ECR repositories that GitHub Actions pushes images and charts to."
   type        = list(string)
 }
+
+variable "oidc_provider" {
+  description = "EKS OIDC issuer without the https:// scheme, trusted by the IRSA roles."
+  type        = string
+}
+
+variable "msk_cluster_arn" {
+  description = "MSK cluster ARN."
+  type        = string
+}
+
+variable "msk_topic_arn" {
+  description = "ARN of the trades topic."
+  type        = string
+}
+
+variable "kafka_consumer_group" {
+  description = "Kafka consumer group of the consumer."
+  type        = string
+}
+
+variable "msk_bootstrap_brokers_parameter_arn" {
+  description = "SSM parameter holding the SASL/IAM bootstrap brokers."
+  type        = string
+}
+
+variable "rds_connection_parameter_arns" {
+  description = "SSM parameters holding the database address, port and name."
+  type        = list(string)
+}
+
+variable "rds_instance_arn" {
+  description = "DB instance ARN."
+  type        = string
+}
+
+variable "rds_resource_id" {
+  description = "DB resource ID, used in rds-db:connect ARNs."
+  type        = string
+}
+
+variable "rds_master_user_secret_arn" {
+  description = "Secrets Manager ARN of the RDS-managed master credentials."
+  type        = string
+}
+
+variable "db_user" {
+  description = "Database user the consumer connects as with IAM authentication."
+  type        = string
+}

@@ -7,5 +7,5 @@ terraform {
 }
 
 inputs = {
-  repositories = ["producer", "consumer"]
+  repositories = ["producer", "consumer", "db-bootstrap"]
 }

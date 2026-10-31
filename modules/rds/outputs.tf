@@ -27,3 +27,8 @@ output "master_user_secret_arn" {
   description = "Secrets Manager ARN of the RDS-managed master credentials."
   value       = module.rds.db_instance_master_user_secret_arn
 }
+
+output "instance_arn" {
+  description = "DB instance ARN, for rds:DescribeDBInstances in IRSA policies."
+  value       = module.rds.db_instance_arn
+}
