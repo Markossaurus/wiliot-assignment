@@ -20,8 +20,9 @@ resource "aws_eks_addon" "cloudwatch_observability" {
   service_account_role_arn = module.cloudwatch_agent_irsa.arn
 
   configuration_values = jsonencode({
-    # Traces instrumented applications; nothing here is instrumented.
-    applicationSignals = { enabled = false }
+    # The add-on creates the agent's Service only with this on, and Fluent Bit asks that Service
+    # which workload each pod belongs to. Idle unless pods are annotated for instrumentation.
+    applicationSignals = { enabled = true }
   })
 
   depends_on = [aws_cloudwatch_log_group.container_insights, module.eks]
