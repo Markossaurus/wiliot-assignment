@@ -54,14 +54,6 @@ module "eks" {
     metrics-server = {
       addon_version = var.addon_versions["metrics-server"]
     }
-    # Mounts SSM parameters into pods as files. Secret syncing stays off, so the values never
-    # become Kubernetes Secrets; rotation keeps the mounted files current.
-    aws-secrets-store-csi-driver-provider = {
-      addon_version = var.addon_versions["aws-secrets-store-csi-driver-provider"]
-      configuration_values = jsonencode({
-        secrets-store-csi-driver = { enableSecretRotation = true }
-      })
-    }
   }
 
   eks_managed_node_groups = {
