@@ -16,8 +16,9 @@ log = logging.getLogger("data_probe")
 
 NAMESPACE = os.environ.get("METRICS_NAMESPACE", "Trades")
 INTERVAL_SECONDS = 60
-# How far back completeness is checked, which is also how long a gap keeps the alarm raised.
-GAP_WINDOW_SECONDS = 600
+# How far back completeness is checked. A gap is seen as a jump between two IDs inside this window,
+# so it has to cover the outage itself: within it, a gap stays visible until the backfill fills it.
+GAP_WINDOW_SECONDS = 3600
 # Rows this recent may still be in flight: with several producers, a trade can land just after
 # the one that followed it.
 SETTLE_SECONDS = 30
