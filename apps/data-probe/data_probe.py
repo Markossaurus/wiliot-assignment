@@ -24,10 +24,12 @@ SETTLE_SECONDS = 30
 
 STALENESS_SQL = "SELECT extract(epoch FROM now() - max(ingested_at)) FROM trades"
 
+# Only trades executed recently count: backfilled trades land now but executed long ago, and are
+# history being repaired rather than a sign that live data is slow.
 LATENCY_SQL = """
 SELECT count(*), percentile_cont(0.99) WITHIN GROUP (ORDER BY extract(epoch FROM ingested_at - trade_time))
 FROM trades
-WHERE ingested_at > now() - interval '1 minute'
+WHERE ingested_at > now() - interval '1 minute' AND trade_time > now() - interval '2 minutes'
 """
 
 # Each jump between consecutive trade IDs of a symbol is a range of trades that never landed.
