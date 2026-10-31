@@ -54,6 +54,7 @@ spec:
             - -configFiles=/flyway/credentials/flyway.toml
             - -locations=filesystem:/flyway/migrations
             - -placeholders.writerUser={{ .Values.database.writerUser }}
+            - -placeholders.readerUser={{ .Values.database.readerUser }}
             # A session-level lock: Flyway's default transaction-level lock is an open transaction
             # that CREATE INDEX CONCURRENTLY would wait on forever.
             - -postgresql.transactional.lock=false

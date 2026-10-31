@@ -1,0 +1,36 @@
+# Watches the pipeline from the outside: freshness and completeness, measured from the table.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: data-probe
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: trades
+  sources:
+    - repoURL: 092988563851.dkr.ecr.eu-central-1.amazonaws.com/charts
+      chart: data-probe
+      targetRevision: 0.1.0
+      helm:
+        valueFiles:
+          - $values/argocd/prod/values/data-probe.yaml
+    - repoURL: https://github.com/Markossaurus/wiliot-assignment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: trades
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    # Keeps retrying a failed sync, e.g. after a fresh apply, until CI has pushed the images again.
+    retry:
+      limit: -1
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 10m

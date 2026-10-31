@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        app: [producer, consumer, db-bootstrap]
+        app: [producer, consumer, db-bootstrap, data-probe]
     defaults:
       run:
         working-directory: apps/${{ matrix.app }}
@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        chart: [producer, consumer, database]
+        chart: [producer, consumer, database, data-probe]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: helm lint "charts/${{ matrix.chart }}" --values "argocd/prod/values/${{ matrix.chart }}.yaml"
@@ -62,7 +62,7 @@ jobs:
       id-token: write
     strategy:
       matrix:
-        app: [producer, consumer, db-bootstrap]
+        app: [producer, consumer, db-bootstrap, data-probe]
     env:
       APP: ${{ matrix.app }}
     steps:
@@ -93,7 +93,7 @@ jobs:
       id-token: write
     strategy:
       matrix:
-        chart: [producer, consumer, database]
+        chart: [producer, consumer, database, data-probe]
     env:
       CHART_DIR: charts/${{ matrix.chart }}
     steps:
@@ -135,7 +135,7 @@ jobs:
       - name: Commit new image tags
         run: |
           # app:values file; the database chart runs the db-bootstrap image.
-          for pair in producer:producer consumer:consumer db-bootstrap:database; do
+          for pair in producer:producer consumer:consumer db-bootstrap:database data-probe:data-probe; do
             app=${pair%%:*} values="argocd/prod/values/${pair#*:}.yaml"
             tag=$(git rev-parse "HEAD:apps/$app")
             # yq also reformats the file it writes, so it only touches files whose tag changed.

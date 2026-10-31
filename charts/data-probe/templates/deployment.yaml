@@ -1,0 +1,59 @@
+{{- $ctx := dict "name" "data-probe" "root" . }}
+# A single replica: it only reads and publishes once a minute. If it stops, the missing datapoints
+# raise the staleness alarm.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-probe
+  labels:
+    {{- include "data-probe.labels" $ctx | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "data-probe.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "data-probe.labels" $ctx | nindent 8 }}
+    spec:
+      serviceAccountName: data-probe
+      securityContext:
+        {{- include "data-probe.podSecurityContext" . | nindent 8 }}
+      containers:
+        - name: data-probe
+          image: {{ include "data-probe.image" . }}
+          env:
+            - name: AWS_REGION
+              value: {{ .Values.awsRegion }}
+            - name: METRICS_NAMESPACE
+              value: {{ .Values.metricsNamespace }}
+            - name: PGHOST_FILE
+              value: /etc/data-probe/db-host
+            - name: PGPORT_FILE
+              value: /etc/data-probe/db-port
+            - name: PGDATABASE_FILE
+              value: /etc/data-probe/db-name
+            - name: PGUSER
+              value: {{ .Values.database.readerUser }}
+            - name: PGSSLMODE
+              value: verify-full
+            # Baked into the image.
+            - name: PGSSLROOTCERT
+              value: /etc/ssl/certs/rds-global-bundle.pem
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- include "data-probe.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/data-probe
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          secret:
+            secretName: data-probe-config
+        - name: tmp
+          emptyDir: {}

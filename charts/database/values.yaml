@@ -7,8 +7,9 @@ roleArn: ""
 database:
   # RDS instance whose master user runs the migrations.
   instanceIdentifier: ""
-  # Created by the migrations for the consumer, which logs in with IAM.
+  # Created by the migrations for the consumer and the data probe, which log in with IAM.
   writerUser: trades_writer
+  readerUser: trades_reader
 
 # Looks up the master credentials and writes Flyway's connection settings.
 image:

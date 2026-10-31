@@ -1,0 +1,29 @@
+# Region of the RDS instance, the SSM parameters and the CloudWatch metrics.
+awsRegion: ""
+
+image:
+  repository: ""
+  tag: ""
+
+# IRSA role of the service account; External Secrets reads the SSM parameters with it too.
+roleArn: ""
+
+# CloudWatch namespace the metrics go to; the role may only publish there.
+metricsNamespace: Trades
+
+# SSM parameters that External Secrets copies into the namespace.
+parameters:
+  dbAddress: ""
+  dbPort: ""
+  dbName: ""
+
+database:
+  # Read-only user the database chart creates; logs in with IAM.
+  readerUser: trades_reader
+
+resources:
+  requests:
+    cpu: 20m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
