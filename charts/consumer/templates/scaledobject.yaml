@@ -1,0 +1,45 @@
+{{- if .Values.autoscaling.enabled }}
+{{- $ctx := dict "name" "consumer" "root" . }}
+# KEDA runs an HPA for the Deployment that targets this much lag per replica.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: consumer
+  labels:
+    {{- include "consumer.labels" $ctx | nindent 4 }}
+spec:
+  scaleTargetRef:
+    name: consumer
+  minReplicaCount: {{ .Values.autoscaling.minReplicas }}
+  maxReplicaCount: {{ .Values.autoscaling.maxReplicas }}
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        # Every scale-down rebalances the group, so wait for lag to stay low before removing replicas.
+        scaleDown:
+          stabilizationWindowSeconds: 300
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServersFromEnv: KAFKA_BOOTSTRAP_SERVERS
+        consumerGroup: {{ .Values.kafka.consumerGroup }}
+        topic: {{ .Values.kafka.topic }}
+        lagThreshold: {{ .Values.autoscaling.lagThreshold | quote }}
+        sasl: oauthbearer
+        saslTokenProvider: aws_msk_iam
+        tls: enable
+        awsRegion: {{ required "awsRegion is required" .Values.awsRegion }}
+      authenticationRef:
+        name: consumer-kafka
+---
+# Authenticates to MSK with the KEDA operator's own IRSA role.
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: consumer-kafka
+  labels:
+    {{- include "consumer.labels" $ctx | nindent 4 }}
+spec:
+  podIdentity:
+    provider: aws
+{{- end }}

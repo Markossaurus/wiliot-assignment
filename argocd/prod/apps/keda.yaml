@@ -1,0 +1,31 @@
+# Scales workloads on external signals; here, the consumer on its Kafka lag.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: keda
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: platform
+  sources:
+    - repoURL: https://kedacore.github.io/charts
+      chart: keda
+      targetRevision: 2.21.0
+      helm:
+        valueFiles:
+          - $values/argocd/prod/values/keda.yaml
+    - repoURL: https://github.com/Markossaurus/wiliot-assignment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: keda
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # The CRDs are too large for client-side apply.
+      - ServerSideApply=true

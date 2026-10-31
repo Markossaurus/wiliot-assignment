@@ -1,7 +1,19 @@
 # Region of the MSK cluster, RDS instance and SSM parameters.
 awsRegion: ""
 
+# Used only when autoscaling is off.
 replicas: 3
+
+# KEDA scales on the consumer group's lag. Each partition has one consumer at most, so more replicas
+# than partitions would sit idle.
+autoscaling:
+  enabled: true
+  # One per zone.
+  minReplicas: 3
+  # The topic's partition count.
+  maxReplicas: 6
+  # Target lag per replica, in messages.
+  lagThreshold: 500
 
 image:
   repository: ""

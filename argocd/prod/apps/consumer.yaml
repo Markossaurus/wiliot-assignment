@@ -20,7 +20,7 @@ spec:
           - $values/argocd/prod/values/database.yaml
     - repoURL: 092988563851.dkr.ecr.eu-central-1.amazonaws.com/charts
       chart: consumer
-      targetRevision: 0.1.0
+      targetRevision: 0.2.0
       helm:
         valueFiles:
           - $values/argocd/prod/values/consumer.yaml
@@ -30,12 +30,20 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: trades
+  # KEDA's autoscaler owns the consumer's replica count; Argo CD must never reset it.
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      name: consumer
+      jsonPointers:
+        - /spec/replicas
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - RespectIgnoreDifferences=true
     # Keeps retrying a failed sync, e.g. after a fresh apply, until CI has pushed the images again.
     retry:
       limit: -1

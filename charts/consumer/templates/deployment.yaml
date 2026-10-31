@@ -6,7 +6,9 @@ metadata:
   labels:
     {{- include "consumer.labels" $ctx | nindent 4 }}
 spec:
+  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicas }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "consumer.selectorLabels" $ctx | nindent 6 }}
@@ -38,6 +40,15 @@ spec:
               value: iam
             - name: KAFKA_BOOTSTRAP_SERVERS_FILE
               value: /etc/consumer/kafka-bootstrap-servers
+            {{- if .Values.autoscaling.enabled }}
+            # Only for KEDA, which resolves the brokers from this container's environment. The app
+            # reads the file above, which takes precedence.
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                secretKeyRef:
+                  name: consumer-config
+                  key: kafka-bootstrap-servers
+            {{- end }}
             - name: KAFKA_TOPIC
               value: {{ .Values.kafka.topic }}
             - name: KAFKA_GROUP_ID

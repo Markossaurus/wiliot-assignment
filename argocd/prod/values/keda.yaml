@@ -1,0 +1,6 @@
+podIdentity:
+  aws:
+    irsa:
+      # The operator reads consumer lag with this role; TriggerAuthentications use it by default.
+      enabled: true
+      roleArn: arn:aws:iam::092988563851:role/mark-tatarinov-role-irsa-keda-euc1-prod
