@@ -1,0 +1,74 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - apps/**
+      - .github/workflows/build.yml
+  pull_request:
+    paths:
+      - apps/**
+      - .github/workflows/build.yml
+  # Pushes whatever images are missing, e.g. after a destroy and a fresh apply emptied ECR.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+
+env:
+  AWS_REGION: eu-central-1
+  AWS_ROLE_ARN: arn:aws:iam::092988563851:role/mark-tatarinov-role-github-euc1-prod
+  ECR_REGISTRY: 092988563851.dkr.ecr.eu-central-1.amazonaws.com
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        app: [producer, consumer]
+    defaults:
+      run:
+        working-directory: apps/${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest -q
+
+  image:
+    needs: test
+    # The AWS role trusts main only.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      matrix:
+        app: [producer, consumer]
+    env:
+      APP: ${{ matrix.app }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Build and push unless the tag exists
+        run: |
+          # The tag is the git tree hash of the app directory, so the same code always gets the same tag.
+          tag=$(git rev-parse "HEAD:apps/$APP")
+          image="$ECR_REGISTRY/$APP:$tag"
+          if aws ecr describe-images --repository-name "$APP" --image-ids imageTag="$tag" >/dev/null 2>&1; then
+            echo "$image already exists"
+            exit 0
+          fi
+          aws ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY"
+          docker build -t "$image" "apps/$APP"
+          docker push "$image"
