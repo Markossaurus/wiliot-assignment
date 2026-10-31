@@ -32,3 +32,8 @@ output "keda_role_arn" {
   description = "IRSA role of KEDA's operator, which reads consumer lag."
   value       = module.keda_role.arn
 }
+
+output "producer_backfill_role_arn" {
+  description = "IRSA role of the producer's backfill CronJob."
+  value       = module.producer_backfill_role.arn
+}

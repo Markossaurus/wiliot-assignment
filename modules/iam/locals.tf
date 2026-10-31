@@ -3,12 +3,13 @@ locals {
 
   # namespace:name of each IRSA service account; must match charts/, argocd/kustomizations and the KEDA chart.
   service_accounts = {
-    producer     = "trades:producer"
-    consumer     = "trades:consumer"
-    db_bootstrap = "trades:db-bootstrap"
-    data_probe   = "trades:data-probe"
-    keda         = "keda:keda-operator"
-    argocd       = "argocd:ecr-credentials"
+    producer          = "trades:producer"
+    producer_backfill = "trades:producer-backfill"
+    consumer          = "trades:consumer"
+    db_bootstrap      = "trades:db-bootstrap"
+    data_probe        = "trades:data-probe"
+    keda              = "keda:keda-operator"
+    argocd            = "argocd:ecr-credentials"
   }
 
   # The SecureString parameters use the AWS-managed aws/ssm key; decrypting is allowed only through SSM.
