@@ -78,6 +78,16 @@ variable "db_user" {
   type        = string
 }
 
+variable "db_reader_user" {
+  description = "Read-only database user the data probe connects as with IAM authentication."
+  type        = string
+}
+
+variable "metrics_namespace" {
+  description = "CloudWatch namespace the data probe publishes its metrics to."
+  type        = string
+}
+
 variable "chart_repository_arns" {
   description = "ECR repositories holding the Helm charts that Argo CD pulls."
   type        = list(string)

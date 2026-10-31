@@ -22,3 +22,8 @@ output "argocd_role_arn" {
   description = "IRSA role External Secrets uses to mint Argo CD's ECR tokens."
   value       = module.argocd_role.arn
 }
+
+output "data_probe_role_arn" {
+  description = "IRSA role of the data probe's service account."
+  value       = module.data_probe_role.arn
+}

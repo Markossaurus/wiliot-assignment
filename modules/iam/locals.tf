@@ -6,6 +6,7 @@ locals {
     producer     = "trades:producer"
     consumer     = "trades:consumer"
     db_bootstrap = "trades:db-bootstrap"
+    data_probe   = "trades:data-probe"
     argocd       = "argocd:ecr-credentials"
   }
 

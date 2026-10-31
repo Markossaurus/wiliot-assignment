@@ -68,6 +68,8 @@ inputs = {
   rds_resource_id               = dependency.rds.outputs.resource_id
   rds_master_user_secret_arn    = dependency.rds.outputs.master_user_secret_arn
   db_user                       = "trades_writer"
+  db_reader_user                = "trades_reader"
+  metrics_namespace             = "Trades"
 
   chart_repository_arns = [for name, arn in dependency.ecr.outputs.repository_arns : arn if startswith(name, "charts/")]
 }

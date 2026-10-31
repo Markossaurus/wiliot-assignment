@@ -8,5 +8,8 @@ terraform {
 
 inputs = {
   # charts/* hold each service's Helm chart as an OCI artifact; Argo CD pulls them from there.
-  repositories = ["producer", "consumer", "db-bootstrap", "charts/producer", "charts/consumer", "charts/database"]
+  repositories = [
+    "producer", "consumer", "db-bootstrap", "data-probe",
+    "charts/producer", "charts/consumer", "charts/database", "charts/data-probe",
+  ]
 }
