@@ -4,6 +4,7 @@ image:
   # The git tree hash of apps/producer; CI updates it after pushing the image.
   tag: fb55cd49e3c170d6ac84f26d7cc43ff5bb56eb46
 roleArn: arn:aws:iam::092988563851:role/mark-tatarinov-role-irsa-producer-euc1-prod
+replicas: 0
 parameters:
   kafkaBootstrapServers: /msk-trades-euc1-prod/bootstrap-brokers-sasl-iam
 backfill:
