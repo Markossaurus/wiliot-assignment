@@ -2,7 +2,7 @@ awsRegion: eu-central-1
 image:
   repository: 092988563851.dkr.ecr.eu-central-1.amazonaws.com/data-probe
   # The git tree hash of apps/data-probe; CI updates it after pushing the image.
-  tag: 921e8b048f1534a51d32218019c62310b594e776
+  tag: c1aee80036fe079c45a97aa7a42ac00d57df15ec
 roleArn: arn:aws:iam::092988563851:role/mark-tatarinov-role-irsa-data-probe-euc1-prod
 parameters:
   dbAddress: /rds-trades-euc1-prod/address
