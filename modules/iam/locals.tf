@@ -1,11 +1,12 @@
 locals {
   suffix = "${var.region}-${var.env}"
 
-  # namespace:name of each IRSA service account; must match the service accounts in charts/.
+  # namespace:name of each IRSA service account; must match charts/ and argocd/kustomizations.
   service_accounts = {
     producer     = "trades:producer"
     consumer     = "trades:consumer"
     db_bootstrap = "trades:db-bootstrap"
+    argocd       = "argocd:ecr-credentials"
   }
 
   # The SecureString parameters use the AWS-managed aws/ssm key; decrypting is allowed only through SSM.

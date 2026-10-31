@@ -10,7 +10,10 @@ dependency "ecr" {
   config_path = "../ecr"
 
   mock_outputs = {
-    repository_arns = { producer = "arn:aws:ecr:eu-central-1:000000000000:repository/producer" }
+    repository_arns = {
+      producer          = "arn:aws:ecr:eu-central-1:000000000000:repository/producer"
+      "charts/producer" = "arn:aws:ecr:eu-central-1:000000000000:repository/charts/producer"
+    }
   }
   mock_outputs_allowed_terraform_commands = ["validate", "plan"]
 }
@@ -66,4 +69,5 @@ inputs = {
   rds_master_user_secret_arn    = dependency.rds.outputs.master_user_secret_arn
   db_user                       = "trades_writer"
 
+  chart_repository_arns = [for name, arn in dependency.ecr.outputs.repository_arns : arn if startswith(name, "charts/")]
 }

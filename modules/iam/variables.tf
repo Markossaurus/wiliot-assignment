@@ -77,3 +77,8 @@ variable "db_user" {
   description = "Database user the consumer connects as with IAM authentication."
   type        = string
 }
+
+variable "chart_repository_arns" {
+  description = "ECR repositories holding the Helm charts that Argo CD pulls."
+  type        = list(string)
+}

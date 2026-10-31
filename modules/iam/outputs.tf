@@ -17,3 +17,8 @@ output "db_bootstrap_role_arn" {
   description = "IRSA role of the database bootstrap Job's service account."
   value       = module.db_bootstrap_role.arn
 }
+
+output "argocd_role_arn" {
+  description = "IRSA role External Secrets uses to mint Argo CD's ECR tokens."
+  value       = module.argocd_role.arn
+}

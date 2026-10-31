@@ -30,5 +30,10 @@ module "github_role" {
       ]
       resources = var.ecr_repository_arns
     }
+    # Lets the workflow read a published chart's metadata to detect a missing version bump.
+    Pull = {
+      actions   = ["ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"]
+      resources = var.ecr_repository_arns
+    }
   }
 }
