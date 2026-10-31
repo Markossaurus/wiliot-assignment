@@ -16,6 +16,8 @@ dependency "ecr" {
 }
 
 inputs = {
-  github_repository   = "Markossaurus/wiliot-assignment"
+  # GitHub's immutable subject format pins owner and repo by ID, so a recreated repo with the
+  # same name can't assume the role.
+  github_repository   = "Markossaurus@80157279/wiliot-assignment@1440645918"
   ecr_repository_arns = values(dependency.ecr.outputs.repository_arns)
 }

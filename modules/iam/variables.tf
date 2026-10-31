@@ -19,7 +19,7 @@ variable "permissions_boundary_name" {
 }
 
 variable "github_repository" {
-  description = "GitHub repository (owner/name) whose main branch may push to ECR."
+  description = "GitHub repository whose main branch may push to ECR, as it appears in the OIDC subject (owner@owner_id/name@repo_id)."
   type        = string
 }
 
