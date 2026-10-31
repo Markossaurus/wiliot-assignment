@@ -7,6 +7,8 @@ a missing ID is a lost trade.
 
 import logging
 import os
+import signal
+import threading
 import time
 
 import boto3
@@ -106,6 +108,9 @@ def connect(rds) -> psycopg.Connection:
 
 
 def main() -> None:
+    # Python runs as PID 1, which ignores SIGTERM unless it has a handler.
+    stopping = threading.Event()
+    signal.signal(signal.SIGTERM, lambda *_: stopping.set())
     logging.basicConfig(
         level=os.environ.get("LOG_LEVEL", "INFO"),
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
@@ -113,7 +118,7 @@ def main() -> None:
     region = os.environ["AWS_REGION"]
     rds = boto3.client("rds", region_name=region)
     cloudwatch = boto3.client("cloudwatch", region_name=region)
-    while True:
+    while not stopping.is_set():
         started = time.monotonic()
         try:
             with connect(rds) as conn:
@@ -126,7 +131,9 @@ def main() -> None:
         # Keep probing whatever fails: the missing datapoints are what raise the staleness alarm.
         except Exception:
             log.exception("probe failed")
-        time.sleep(max(0.0, INTERVAL_SECONDS - (time.monotonic() - started)))
+        # Ends at once on SIGTERM, unlike time.sleep.
+        stopping.wait(max(0.0, INTERVAL_SECONDS - (time.monotonic() - started)))
+    log.info("shut down")
 
 
 if __name__ == "__main__":
