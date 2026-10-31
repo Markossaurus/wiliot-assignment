@@ -1,0 +1,31 @@
+# No SSO: the UI is never exposed outside the cluster.
+dex:
+  enabled: false
+
+configs:
+  cm:
+    # Restores health assessment of Application resources, so sync waves in the root
+    # Application wait for each child Application. A child counts as healthy only once its sync
+    # has finished, so hooks such as the database migrations complete before the next wave.
+    resource.customizations.health.argoproj.io_Application: |
+      hs = {}
+      hs.status = "Progressing"
+      hs.message = ""
+      if obj.status == nil or obj.status.health == nil then
+        return hs
+      end
+      local op = obj.status.operationState
+      if op ~= nil and op.phase == "Running" then
+        hs.message = "sync in progress"
+        return hs
+      end
+      if op ~= nil and (op.phase == "Failed" or op.phase == "Error") then
+        hs.status = "Degraded"
+        hs.message = op.message or "sync failed"
+        return hs
+      end
+      hs.status = obj.status.health.status
+      if obj.status.health.message ~= nil then
+        hs.message = obj.status.health.message
+      end
+      return hs

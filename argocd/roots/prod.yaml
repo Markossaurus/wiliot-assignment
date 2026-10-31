@@ -1,0 +1,24 @@
+# Entry point of the prod cluster: the bootstrap applies it once, and it then manages itself,
+# since this file is in the set it syncs. Stays in the default project, which exists before any
+# of the projects it creates.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Markossaurus/wiliot-assignment.git
+    targetRevision: main
+    path: argocd
+    directory:
+      recurse: true
+      include: "{roots/prod.yaml,prod/projects/*.yaml,prod/apps/*.yaml}"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

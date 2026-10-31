@@ -1,0 +1,86 @@
+{{- $ctx := dict "name" "consumer" "root" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consumer
+  labels:
+    {{- include "consumer.labels" $ctx | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      {{- include "consumer.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "consumer.labels" $ctx | nindent 8 }}
+    spec:
+      serviceAccountName: consumer
+      securityContext:
+        {{- include "consumer.podSecurityContext" . | nindent 8 }}
+      # One replica per zone; tainted nodes (e.g. NotReady) don't count as a zone to fill.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          nodeTaintsPolicy: Honor
+          matchLabelKeys: [pod-template-hash]
+          labelSelector:
+            matchLabels:
+              {{- include "consumer.selectorLabels" $ctx | nindent 14 }}
+      containers:
+        - name: consumer
+          image: {{ include "consumer.image" . }}
+          env:
+            - name: AWS_REGION
+              value: {{ .Values.awsRegion }}
+            - name: KAFKA_AUTH
+              value: iam
+            - name: KAFKA_BOOTSTRAP_SERVERS_FILE
+              value: /etc/consumer/kafka-bootstrap-servers
+            - name: KAFKA_TOPIC
+              value: {{ .Values.kafka.topic }}
+            - name: KAFKA_GROUP_ID
+              value: {{ .Values.kafka.consumerGroup }}
+            - name: DB_AUTH
+              value: iam
+            - name: PGHOST_FILE
+              value: /etc/consumer/db-host
+            - name: PGPORT_FILE
+              value: /etc/consumer/db-port
+            - name: PGDATABASE_FILE
+              value: /etc/consumer/db-name
+            - name: PGUSER
+              value: {{ .Values.database.writerUser }}
+            - name: PGSSLMODE
+              value: verify-full
+            # Baked into the image.
+            - name: PGSSLROOTCERT
+              value: /etc/ssl/certs/rds-global-bundle.pem
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- include "consumer.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/consumer
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          secret:
+            secretName: consumer-config
+        - name: tmp
+          emptyDir: {}

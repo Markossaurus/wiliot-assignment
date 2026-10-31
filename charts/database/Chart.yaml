@@ -1,0 +1,7 @@
+apiVersion: v2
+name: database
+description: Migrates the trades database with Flyway, including the consumer's IAM-authenticated user.
+type: application
+# Bump on every chart change, including new migrations; CI refuses to publish changed content
+# under an existing version.
+version: 0.1.0

@@ -1,0 +1,18 @@
+# Region of the RDS instance and its master secret.
+awsRegion: ""
+
+# IRSA role the init container reads the master credentials with.
+roleArn: ""
+
+database:
+  # RDS instance whose master user runs the migrations.
+  instanceIdentifier: ""
+  # Created by the migrations for the consumer, which logs in with IAM.
+  writerUser: trades_writer
+
+# Looks up the master credentials and writes Flyway's connection settings.
+image:
+  repository: ""
+  tag: ""
+
+flywayImage: flyway/flyway:13.10.3-alpine@sha256:f6358224a41866888c3341b9c1e286fa2be8e1ccc18270b219dc0e8ea26e789f

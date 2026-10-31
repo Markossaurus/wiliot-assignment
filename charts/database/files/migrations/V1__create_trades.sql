@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS trades (
+CREATE TABLE trades (
     symbol      text        NOT NULL,
     trade_id    bigint      NOT NULL,
     price       numeric     NOT NULL,
@@ -11,4 +11,4 @@ CREATE TABLE IF NOT EXISTS trades (
 );
 
 -- Freshness checks filter on recently ingested rows.
-CREATE INDEX IF NOT EXISTS trades_ingested_at_idx ON trades (ingested_at);
+CREATE INDEX trades_ingested_at_idx ON trades (ingested_at);

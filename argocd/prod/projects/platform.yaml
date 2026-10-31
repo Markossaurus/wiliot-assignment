@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  description: Cluster add-ons, including Argo CD itself.
+  sourceRepos:
+    - https://argoproj.github.io/argo-helm
+    - https://charts.external-secrets.io
+    - https://github.com/Markossaurus/wiliot-assignment.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+    - server: https://kubernetes.default.svc
+      namespace: external-secrets
+  # Add-ons install CRDs, cluster roles and admission webhooks.
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"

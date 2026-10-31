@@ -1,0 +1,6 @@
+apiVersion: v2
+name: consumer
+description: Writes trades from Kafka into PostgreSQL, exactly once per (symbol, trade_id).
+type: application
+# Bump on every chart change; CI refuses to publish changed content under an existing version.
+version: 0.1.0

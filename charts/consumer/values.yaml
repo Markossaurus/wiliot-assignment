@@ -1,0 +1,33 @@
+# Region of the MSK cluster, RDS instance and SSM parameters.
+awsRegion: ""
+
+replicas: 3
+
+image:
+  repository: ""
+  tag: ""
+
+# IRSA role of the service account; External Secrets reads the SSM parameters with it too.
+roleArn: ""
+
+kafka:
+  topic: binance.trades
+  consumerGroup: trades-writer
+
+# SSM parameters that External Secrets copies into the namespace.
+parameters:
+  kafkaBootstrapServers: ""
+  dbAddress: ""
+  dbPort: ""
+  dbName: ""
+
+database:
+  # User the consumer connects as with IAM authentication; the database chart creates it.
+  writerUser: trades_writer
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 256Mi

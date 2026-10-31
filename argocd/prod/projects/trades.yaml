@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: trades
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  description: The trades pipeline's services; confined to their namespace.
+  sourceRepos:
+    - 092988563851.dkr.ecr.eu-central-1.amazonaws.com/charts
+    - https://github.com/Markossaurus/wiliot-assignment.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: trades
+  # Only the namespace itself, for CreateNamespace; everything else must be namespaced.
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace

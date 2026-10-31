@@ -5,12 +5,14 @@ on:
     branches: [main]
     paths:
       - apps/**
+      - charts/**
       - .github/workflows/build.yml
   pull_request:
     paths:
       - apps/**
+      - charts/**
       - .github/workflows/build.yml
-  # Pushes whatever images are missing, e.g. after a destroy and a fresh apply emptied ECR.
+  # Pushes whatever images and charts are missing, e.g. after a destroy and a fresh apply emptied ECR.
   workflow_dispatch:
 
 permissions:
@@ -29,7 +31,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        app: [producer, consumer]
+        app: [producer, consumer, db-bootstrap]
     defaults:
       run:
         working-directory: apps/${{ matrix.app }}
@@ -41,6 +43,15 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: python -m pytest -q
 
+  lint-chart:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        chart: [producer, consumer, database]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: helm lint "charts/${{ matrix.chart }}" --values "argocd/prod/values/${{ matrix.chart }}.yaml"
+
   image:
     needs: test
     # The AWS role trusts main only.
@@ -51,7 +62,7 @@ jobs:
       id-token: write
     strategy:
       matrix:
-        app: [producer, consumer]
+        app: [producer, consumer, db-bootstrap]
     env:
       APP: ${{ matrix.app }}
     steps:
@@ -72,3 +83,68 @@ jobs:
           aws ecr get-login-password | docker login --username AWS --password-stdin "$ECR_REGISTRY"
           docker build -t "$image" "apps/$APP"
           docker push "$image"
+
+  chart:
+    needs: lint-chart
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      matrix:
+        chart: [producer, consumer, database]
+    env:
+      CHART_DIR: charts/${{ matrix.chart }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Push the chart unless its version is already published
+        run: |
+          name=$(yq '.name' "$CHART_DIR/Chart.yaml")
+          version=$(yq '.version' "$CHART_DIR/Chart.yaml")
+          tree=$(git rev-parse "HEAD:$CHART_DIR")
+          aws ecr get-login-password | helm registry login --username AWS --password-stdin "$ECR_REGISTRY"
+          if aws ecr describe-images --repository-name "charts/$name" --image-ids imageTag="$version" >/dev/null 2>&1; then
+            published=$(helm show chart "oci://$ECR_REGISTRY/charts/$name" --version "$version" | yq '.annotations["git-tree"]')
+            if [ "$published" != "$tree" ]; then
+              echo "::error::$CHART_DIR changed, but version $version is already published. Bump version in Chart.yaml."
+              exit 1
+            fi
+            echo "$name $version already published"
+            exit 0
+          fi
+          # Records the source tree, so later runs can tell whether this version's content changed.
+          tree="$tree" yq -i '.annotations["git-tree"] = strenv(tree)' "$CHART_DIR/Chart.yaml"
+          helm package "$CHART_DIR" --destination "$RUNNER_TEMP"
+          helm push "$RUNNER_TEMP/$name-$version.tgz" "oci://$ECR_REGISTRY/charts"
+
+  # Points the services' values at the images built from this commit; Argo CD rolls them out from Git.
+  # Pushes made with GITHUB_TOKEN don't trigger workflows, so this can't loop.
+  update-values:
+    needs: [image, chart]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Commit new image tags
+        run: |
+          # app:values file; the database chart runs the db-bootstrap image.
+          for pair in producer:producer consumer:consumer db-bootstrap:database; do
+            app=${pair%%:*} values=${pair#*:}
+            tag=$(git rev-parse "HEAD:apps/$app") yq -i '.image.tag = strenv(tag)' "argocd/prod/values/$values.yaml"
+          done
+          if git diff --quiet; then
+            echo "image tags are already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -qam "chore(argocd): deploy the images built from ${GITHUB_SHA::7}"
+          git pull -q --rebase origin main
+          git push origin HEAD:main

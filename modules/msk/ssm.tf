@@ -1,4 +1,4 @@
-# Published for the workloads, which mount it through the Secrets Store CSI driver.
+# Published for the workloads; External Secrets copies it into their namespace.
 resource "aws_ssm_parameter" "bootstrap_brokers" {
   name  = "/${module.msk.cluster_name}/bootstrap-brokers-sasl-iam"
   type  = "SecureString"

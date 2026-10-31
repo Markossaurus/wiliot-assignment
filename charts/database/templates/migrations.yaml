@@ -1,0 +1,11 @@
+{{- $ctx := dict "name" "db-migrate" "root" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-migrations
+  labels:
+    {{- include "database.labels" $ctx | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+data:
+  {{- (.Files.Glob "files/migrations/*.sql").AsConfig | nindent 2 }}

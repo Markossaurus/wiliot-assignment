@@ -1,0 +1,12 @@
+{{- $ctx := dict "name" "consumer" "root" . }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: consumer
+  labels:
+    {{- include "consumer.labels" $ctx | nindent 4 }}
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "consumer.selectorLabels" $ctx | nindent 6 }}

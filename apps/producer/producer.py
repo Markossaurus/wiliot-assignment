@@ -49,7 +49,7 @@ heartbeat = time.monotonic()
 
 
 def setting(name: str, default: str | None = None) -> str:
-    """Reads NAME from the file that NAME_FILE points to (a Secrets Store CSI mount), else from NAME."""
+    """Reads NAME from the file that NAME_FILE points to (a mounted Secret), else from NAME."""
     path = os.environ.get(f"{name}_FILE")
     if path:
         with open(path) as f:

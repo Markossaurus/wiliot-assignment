@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+patches:
+  - patch: |-
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: ecr-credentials
+        annotations:
+          eks.amazonaws.com/role-arn: arn:aws:iam::092988563851:role/mark-tatarinov-role-irsa-argocd-euc1-prod
+  - patch: |-
+      apiVersion: generators.external-secrets.io/v1alpha1
+      kind: ECRAuthorizationToken
+      metadata:
+        name: ecr-charts
+      spec:
+        region: eu-central-1
+  - patch: |-
+      apiVersion: external-secrets.io/v1
+      kind: ExternalSecret
+      metadata:
+        name: ecr-charts
+      spec:
+        target:
+          template:
+            data:
+              url: 092988563851.dkr.ecr.eu-central-1.amazonaws.com/charts

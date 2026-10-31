@@ -1,0 +1,93 @@
+{{- $ctx := dict "name" "db-migrate" "root" . }}
+# Applies files/migrations with Flyway on every sync. Flyway records what it has applied, so a sync
+# without new migrations changes nothing.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate
+  labels:
+    {{- include "database.labels" $ctx | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    # Before wave 0, where the consumer's Deployment is, so migrations finish before it rolls.
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  backoffLimit: 3
+  # Fails the sync instead of waiting forever, e.g. for an image CI hasn't pushed yet; the
+  # Application retries it.
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        {{- include "database.labels" $ctx | nindent 8 }}
+    spec:
+      serviceAccountName: db-bootstrap
+      restartPolicy: Never
+      securityContext:
+        {{- include "database.podSecurityContext" . | nindent 8 }}
+      initContainers:
+        - name: credentials
+          image: {{ include "database.image" . }}
+          env:
+            - name: AWS_REGION
+              value: {{ required "awsRegion is required" .Values.awsRegion }}
+            - name: DB_INSTANCE_IDENTIFIER
+              value: {{ required "database.instanceIdentifier is required" .Values.database.instanceIdentifier }}
+            - name: FLYWAY_CONFIG_FILE
+              value: /flyway/credentials/flyway.toml
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            {{- include "database.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            - name: credentials
+              mountPath: /flyway/credentials
+      containers:
+        - name: flyway
+          image: {{ .Values.flywayImage }}
+          args:
+            - -configFiles=/flyway/credentials/flyway.toml
+            - -locations=filesystem:/flyway/migrations
+            - -placeholders.writerUser={{ .Values.database.writerUser }}
+            # A session-level lock: Flyway's default transaction-level lock is an open transaction
+            # that CREATE INDEX CONCURRENTLY would wait on forever.
+            - -postgresql.transactional.lock=false
+            - migrate
+          env:
+            # Otherwise Flyway reports usage to Redgate over the internet.
+            - name: REDGATE_DISABLE_TELEMETRY
+              value: "true"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            {{- include "database.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            - name: credentials
+              mountPath: /flyway/credentials
+              readOnly: true
+            - name: migrations
+              mountPath: /flyway/migrations
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        # Holds the master password and the CA bundle for the Job's lifetime only: in memory, never
+        # on disk or in etcd.
+        - name: credentials
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Mi
+        - name: migrations
+          configMap:
+            name: database-migrations
+        - name: tmp
+          emptyDir: {}

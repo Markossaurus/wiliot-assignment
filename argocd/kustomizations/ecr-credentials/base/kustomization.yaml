@@ -1,0 +1,8 @@
+# Argo CD's credentials for the Helm charts in ECR. Overlays set the account- and env-specific
+# parts: the IRSA role, the region and the registry URL.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - serviceaccount.yaml
+  - generator.yaml
+  - externalsecret.yaml

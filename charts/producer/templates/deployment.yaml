@@ -1,0 +1,72 @@
+{{- $ctx := dict "name" "producer" "root" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: producer
+  labels:
+    {{- include "producer.labels" $ctx | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      {{- include "producer.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "producer.labels" $ctx | nindent 8 }}
+    spec:
+      serviceAccountName: producer
+      securityContext:
+        {{- include "producer.podSecurityContext" . | nindent 8 }}
+      # One replica per zone; tainted nodes (e.g. NotReady) don't count as a zone to fill.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          nodeTaintsPolicy: Honor
+          matchLabelKeys: [pod-template-hash]
+          labelSelector:
+            matchLabels:
+              {{- include "producer.selectorLabels" $ctx | nindent 14 }}
+      containers:
+        - name: producer
+          image: {{ include "producer.image" . }}
+          env:
+            - name: AWS_REGION
+              value: {{ .Values.awsRegion }}
+            - name: KAFKA_AUTH
+              value: iam
+            - name: KAFKA_BOOTSTRAP_SERVERS_FILE
+              value: /etc/producer/kafka-bootstrap-servers
+            - name: KAFKA_TOPIC
+              value: {{ .Values.kafka.topic }}
+            # Terraform owns the topic, and the producer's role can't create topics.
+            - name: KAFKA_CREATE_TOPIC
+              value: "false"
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- include "producer.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/producer
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          secret:
+            secretName: producer-config
+        - name: tmp
+          emptyDir: {}

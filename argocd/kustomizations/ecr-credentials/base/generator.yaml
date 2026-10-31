@@ -1,0 +1,9 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ECRAuthorizationToken
+metadata:
+  name: ecr-charts
+spec:
+  auth:
+    jwt:
+      serviceAccountRef:
+        name: ecr-credentials

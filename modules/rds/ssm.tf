@@ -1,4 +1,4 @@
-# Published for the workloads, which mount them through the Secrets Store CSI driver.
+# Published for the workloads; External Secrets copies them into their namespace.
 resource "aws_ssm_parameter" "connection" {
   for_each = {
     address = module.rds.db_instance_address

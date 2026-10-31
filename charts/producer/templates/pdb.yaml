@@ -1,0 +1,12 @@
+{{- $ctx := dict "name" "producer" "root" . }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: producer
+  labels:
+    {{- include "producer.labels" $ctx | nindent 4 }}
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "producer.selectorLabels" $ctx | nindent 6 }}

@@ -1,0 +1,45 @@
+# The consumer is the only writer of the trades database, so its release carries the migrations:
+# both charts sync as one operation, and the database chart's waves run Flyway to completion
+# before the consumer's Deployment rolls. Charts come from ECR, the prod values from Git.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: consumer
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: trades
+  sources:
+    - repoURL: 092988563851.dkr.ecr.eu-central-1.amazonaws.com/charts
+      chart: database
+      targetRevision: 0.1.0
+      helm:
+        releaseName: database
+        valueFiles:
+          - $values/argocd/prod/values/database.yaml
+    - repoURL: 092988563851.dkr.ecr.eu-central-1.amazonaws.com/charts
+      chart: consumer
+      targetRevision: 0.1.0
+      helm:
+        valueFiles:
+          - $values/argocd/prod/values/consumer.yaml
+    - repoURL: https://github.com/Markossaurus/wiliot-assignment.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: trades
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    # Keeps retrying a failed sync, e.g. after a fresh apply, until CI has pushed the images again.
+    retry:
+      limit: -1
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 10m

@@ -1,0 +1,27 @@
+# Region of the MSK cluster and the SSM parameters.
+awsRegion: ""
+
+# Every replica streams every symbol, so trades keep flowing while one restarts; the consumer's
+# primary key drops the duplicates.
+replicas: 3
+
+image:
+  repository: ""
+  tag: ""
+
+# IRSA role of the service account; External Secrets reads the SSM parameters with it too.
+roleArn: ""
+
+kafka:
+  topic: binance.trades
+
+# SSM parameters that External Secrets copies into the namespace.
+parameters:
+  kafkaBootstrapServers: ""
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
