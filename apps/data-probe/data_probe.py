@@ -16,11 +16,8 @@ log = logging.getLogger("data_probe")
 
 NAMESPACE = os.environ.get("METRICS_NAMESPACE", "Trades")
 INTERVAL_SECONDS = 60
-# How far back completeness is checked. A gap is seen as a jump between two IDs inside this window,
-# so it has to cover the outage itself: within it, a gap stays visible until the backfill fills it.
-GAP_WINDOW_SECONDS = 3600
-# Rows this recent may still be in flight: with several producers, a trade can land just after
-# the one that followed it.
+# A gap counts once the trade after it landed this long ago: with several producers, a trade can
+# land just after the one that followed it.
 SETTLE_SECONDS = 30
 
 STALENESS_SQL = "SELECT extract(epoch FROM now() - max(ingested_at)) FROM trades"
@@ -33,16 +30,21 @@ FROM trades
 WHERE ingested_at > now() - interval '1 minute' AND trade_time > now() - interval '2 minutes'
 """
 
-# Each jump between consecutive trade IDs of a symbol is a range of trades that never landed.
+# Each jump between consecutive trade IDs of a symbol is a range of trades that never landed. The scan
+# starts at the backfill's watermarks, which never pass a gap, so a gap counts however old it is. It
+# reads only the primary key; the table itself only for the trade after each gap.
 GAPS_SQL = """
-SELECT symbol, prev_id + 1, trade_id - 1
-FROM (
-    SELECT symbol, trade_id, lag(trade_id) OVER (PARTITION BY symbol ORDER BY trade_id) AS prev_id
+SELECT g.symbol, g.prev_id + 1, g.trade_id - 1
+FROM trade_watermarks w
+CROSS JOIN LATERAL (
+    SELECT symbol, trade_id, lag(trade_id, 1, w.verified_through_id) OVER (ORDER BY trade_id) AS prev_id
     FROM trades
-    WHERE ingested_at > now() - %s * interval '1 second' AND ingested_at <= now() - %s * interval '1 second'
-) ordered
-WHERE trade_id > prev_id + 1
-ORDER BY symbol, trade_id
+    WHERE symbol = w.symbol AND trade_id > w.verified_through_id
+) g
+WHERE g.trade_id > g.prev_id + 1
+  AND (SELECT ingested_at FROM trades t WHERE t.symbol = g.symbol AND t.trade_id = g.trade_id)
+      <= now() - %s * interval '1 second'
+ORDER BY g.symbol, g.trade_id
 """
 # A long outage is one range per symbol; scattered losses could be many, so the log is capped.
 MAX_LOGGED_GAPS = 50
@@ -83,7 +85,7 @@ def measure(conn: psycopg.Connection) -> tuple[list[dict], list[tuple[str, int, 
     """Returns the datapoints, and the (symbol, first missing ID, last missing ID) ranges."""
     (staleness,) = conn.execute(STALENESS_SQL).fetchone()
     ingested, latency_p99 = conn.execute(LATENCY_SQL).fetchone()
-    gaps = conn.execute(GAPS_SQL, (GAP_WINDOW_SECONDS, SETTLE_SECONDS)).fetchall()
+    gaps = conn.execute(GAPS_SQL, (SETTLE_SECONDS,)).fetchall()
     return metric_data(staleness, ingested, latency_p99, missing_trades(gaps)), gaps
 
 
