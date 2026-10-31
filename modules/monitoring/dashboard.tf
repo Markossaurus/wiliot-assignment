@@ -50,7 +50,7 @@ resource "aws_cloudwatch_dashboard" "trades" {
       }),
       merge(local.metric_widget, {
         properties = {
-          title  = "Trades landed per minute, and trades missing in the last 10 minutes"
+          title  = "Trades landed per minute, and trades missing in the last hour"
           region = local.dashboard_region
           stat   = "Maximum"
           period = 60

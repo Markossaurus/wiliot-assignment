@@ -30,7 +30,7 @@ resource "aws_cloudwatch_metric_alarm" "freshness" {
 
 resource "aws_cloudwatch_metric_alarm" "completeness" {
   alarm_name          = "alarm-trades-completeness-${local.suffix}"
-  alarm_description   = "Trade IDs are missing in PostgreSQL: trades were lost in the last 10 minutes."
+  alarm_description   = "Trade IDs are missing in PostgreSQL: trades from the last hour were lost and not yet backfilled."
   namespace           = var.metrics_namespace
   metric_name         = "MissingTrades"
   statistic           = "Maximum"
